@@ -28,6 +28,7 @@ class ImaginaryValue:
     def __repr__(self):
         return str(self)
 
+
 class IVec(ImaginaryValue):
     def __init__(self, value: float):
         super().__init__(value)
@@ -76,7 +77,6 @@ class JVec(ImaginaryValue):
         return f"{self.value:.3f}j"
 
 
-
 class KVec(ImaginaryValue):
     def __init__(self, value: float):
         super().__init__(value)
@@ -98,7 +98,7 @@ class KVec(ImaginaryValue):
             raise TypeError
 
     def __str__(self):
-        return f"{self.value:.3f}k"
+        return f"{self.value:.2f}k"
 
 
 class VectorPart:
@@ -116,12 +116,10 @@ class VectorPart:
         return f"{{ {self.i}, {self.j}, {self.k} }}"
 
     def __mul__(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError
-
-        return VectorPart(self.i * other.i,
-                          self.j * other.j,
-                          self.k * other.k)
+        if isinstance(other, (float, int)):
+            return VectorPart(self.i * other,
+                              self.j * other,
+                              self.k * other)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
@@ -133,9 +131,7 @@ class VectorPart:
         if not isinstance(other, self.__class__):
             raise TypeError
 
-        v_product = []
-        for vec1, vec2 in zip(self, other):
-            v_product.append(vec1 * vec2)
+        v_product = [vec1 * vec2 for vec1, vec2 in zip(self, other)]
 
         return reduce(lambda x, y: x + y, v_product)
 
@@ -175,12 +171,37 @@ class Quaternion:
 
         return (self.vector_part @ other.vector_part) + self.scalar_part * other.scalar_part
 
+    def __iter__(self):
+        yield self.scalar_part
+        for part in self.vector_part:
+            yield part
+
+    def __mul__(self, other):
+        if isinstance(other, self.__class__):
+            a, b, c, d = self
+            e, f, g, h = other
+
+            # Derivation: https://www.youtube.com/watch?v=jlskQDR8-bY
+            return Quaternion(
+                (a * e) - self.vector_part @ other.vector_part,
+                VectorPart(
+                    (b * e) + (a * f) - (d * g) + (c * h),
+                    (c * e) + (d * f) + (a * g) - (b * h),
+                    (d * e) - (c * f) + (b * g) + (a * h)
+                )
+            )
+
+    def __add__(self, other):
+        if isinstance(other, self.__class__):
+            return Quaternion(self.scalar_part + other.scalar_part,
+                              self.vector_part + other.vector_part)
+
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
             return Quaternion(self.scalar_part / other, self.vector_part / other)
 
     def __repr__(self):
-        return f"{self.scalar_part:.3f}, {self.vector_part}"
+        return f"{self.scalar_part:.2f}, {self.vector_part}"
 
     def normalize(self):
         return self / math.sqrt(self @ self)
@@ -224,3 +245,7 @@ if __name__ == '__main__':
     q1 = Quaternion(3, vector_part1)
     print(q1)
     print(q1.normalize())
+    print()
+    q2 = q1 * q1
+    print(q2)
+    print(q2.normalize())
