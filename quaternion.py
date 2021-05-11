@@ -1,3 +1,6 @@
+from functools import reduce
+
+
 class ImaginaryValue:
     def __init__(self, value: float):
         self.value = value
@@ -85,15 +88,33 @@ class KVec(ImaginaryValue):
 
 
 class VectorPart:
-    def __init__(self, i: IVec, j: JVec, k: KVec):
-        self.i = i
-        self.j = j
-        self.k = k
+    def __init__(self, i: float, j: float, k: float):
+        self.i = IVec(i)
+        self.j = JVec(j)
+        self.k = KVec(k)
+
+    def __iter__(self):
+        yield self.i.value
+        yield self.j.value
+        yield self.k.value
+
+    def __matmul__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError
+
+        v_product = []
+        for v1, v2 in zip(self, other):
+            v_product.append(v1 * v2)
+
+        return reduce(lambda x, y: x + y, v_product)
+
+
 
 
 class Quaternion:
-    scalar_part: float
-    i: IVec
+    def __init__(self, scalar_part: float, vector_part: VectorPart):
+        self.scalar_part = scalar_part
+        self.vector_part = vector_part
 
 
 if __name__ == '__main__':
@@ -121,3 +142,10 @@ if __name__ == '__main__':
 
     print("\nUnary Tests:")
     print(-v1)
+
+    print("\nBinary Tests:")
+    vector_part1 = VectorPart(1, 3, -5)
+    vector_part2 = VectorPart(4, -2, -1)
+    print(f"Dot Product: {vector_part1 @ vector_part2}")
+
+
