@@ -165,9 +165,9 @@ class VectorPart:
 
 
 class Quaternion:
-    def __init__(self, scalar_part: float, vector_part: VectorPart):
+    def __init__(self, scalar_part: float, vector_iterable):
         self.scalar_part = scalar_part
-        self.vector_part = vector_part
+        self.vector_part = VectorPart(*vector_iterable)
 
     def __matmul__(self, other):
         if not isinstance(other, self.__class__):
@@ -213,22 +213,26 @@ class Quaternion:
             return Quaternion(self.scalar_part / other, self.vector_part / other)
 
     def __repr__(self):
-        return f"{self.scalar_part:.2f}, {self.vector_part}"
+        return f"Quaternion:( {self.scalar_part:.2f}, {self.vector_part})"
 
     def normalize(self):
         return self / math.sqrt(self @ self)
 
+    def rotate_about(self, other_q, degrees: float):
+        if not isinstance(other_q, self.__class__):
+            raise TypeError
+
+        half_angle = math.radians(degrees) / 2
+
+        return (other_q * math.sin(half_angle) + math.cos(half_angle)) \
+               * self \
+               * (other_q * math.sin(-half_angle) + math.cos(-half_angle))
+
 
 if __name__ == '__main__':
-
-    angle = math.pi/2
+    angle = math.degrees(math.pi / 2)
     print("\nFull Test:")
     q1 = Quaternion(0, VectorPart(1, 0, 0)).normalize()
-    q2 = -q1
-    p = Quaternion(0, VectorPart(0, 0, 1))
+    p = Quaternion(0, (0, 0, 1))
 
-    result = (q1 * math.sin(angle / 2) + math.cos(angle / 2)) \
-             * p \
-             * (q1 * math.sin(-angle / 2) + math.cos(-angle / 2))
-
-    print(f"Rotating ( {p}) about ( {q1}) by {math.degrees(angle)} degrees:\n\t> ( {result})")
+    print(f"Rotating {p} about {q1} by {angle} degrees:\n\t> {p.rotate_about(q1, angle)}")
