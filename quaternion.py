@@ -1,4 +1,5 @@
 import math
+from numpy import cross
 from functools import reduce
 
 
@@ -50,7 +51,7 @@ class IVec(ImaginaryValue):
             raise TypeError
 
     def __str__(self):
-        return f"{self.value:.3f}i"
+        return f"{self.value:.2f}i"
 
 
 class JVec(ImaginaryValue):
@@ -74,7 +75,7 @@ class JVec(ImaginaryValue):
             raise TypeError
 
     def __str__(self):
-        return f"{self.value:.3f}j"
+        return f"{self.value:.2f}j"
 
 
 class KVec(ImaginaryValue):
@@ -115,17 +116,20 @@ class VectorPart:
     def __repr__(self):
         return f"{{ {self.i}, {self.j}, {self.k} }}"
 
+    def __neg__(self):
+        return VectorPart(-self.i.value, -self.j.value, -self.k.value)
+
     def __mul__(self, other):
         if isinstance(other, (float, int)):
-            return VectorPart(self.i * other,
-                              self.j * other,
-                              self.k * other)
+            return VectorPart(self.i.value * other,
+                              self.j.value * other,
+                              self.k.value * other)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
-            return VectorPart(self.i / other,
-                              self.j / other,
-                              self.k / other)
+            return VectorPart(self.i.value / other,
+                              self.j.value / other,
+                              self.k.value / other)
 
     def __matmul__(self, other):
         if not isinstance(other, self.__class__):
@@ -137,24 +141,24 @@ class VectorPart:
 
     def __add__(self, other):
         if isinstance(other, self.__class__):
-            return VectorPart(self.i + other.i,
-                              self.j + other.j,
-                              self.k + other.k)
+            return VectorPart(self.i.value + other.i.value,
+                              self.j.value + other.j.value,
+                              self.k.value + other.k.value)
 
         elif isinstance(other, IVec):
             return VectorPart(self.i + other.value,
-                              self.j,
-                              self.k)
+                              self.j.value,
+                              self.k.value)
 
         elif isinstance(other, JVec):
-            return VectorPart(self.i,
-                              self.j + other.value,
-                              self.k)
+            return VectorPart(self.i.value,
+                              self.j.value + other.value,
+                              self.k.value)
 
         elif isinstance(other, KVec):
-            return VectorPart(self.i,
-                              self.j,
-                              self.k + other.value)
+            return VectorPart(self.i.value,
+                              self.j.value,
+                              self.k.value + other.value)
 
         else:
             raise TypeError
@@ -177,6 +181,9 @@ class Quaternion:
             yield part
 
     def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            return Quaternion(self.scalar_part * other, self.vector_part * other)
+
         if isinstance(other, self.__class__):
             a, b, c, d = self
             e, f, g, h = other
@@ -192,9 +199,14 @@ class Quaternion:
             )
 
     def __add__(self, other):
+        if isinstance(other, (float, int)):
+            return Quaternion(self.scalar_part + other, self.vector_part)
         if isinstance(other, self.__class__):
             return Quaternion(self.scalar_part + other.scalar_part,
                               self.vector_part + other.vector_part)
+
+    def __neg__(self):
+        return Quaternion(self.scalar_part, -self.vector_part)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
@@ -208,44 +220,15 @@ class Quaternion:
 
 
 if __name__ == '__main__':
-    v1 = IVec(3)
-    v2 = JVec(3)
-    v3 = KVec(3)
 
-    print("IVec Tests:")
-    print(v1 * 3.1)
-    print(v1 * v1)
-    print(v1 * v2)
-    print(v1 * v3)
+    angle = math.pi/2
+    print("\nFull Test:")
+    q1 = Quaternion(0, VectorPart(1, 0, 0)).normalize()
+    q2 = -q1
+    p = Quaternion(0, VectorPart(0, 0, 1))
 
-    print("\nJVec Tests:")
-    print(v2 * 3.1)
-    print(v2 * v1)
-    print(v2 * v2)
-    print(v2 * v3)
+    result = (q1 * math.sin(angle / 2) + math.cos(angle / 2)) \
+             * p \
+             * (q1 * math.sin(-angle / 2) + math.cos(-angle / 2))
 
-    print("\nKVec Tests:")
-    print(v3 * 3.1)
-    print(v3 * v1)
-    print(v3 * v2)
-    print(v3 * v3)
-
-    print("\nUnary Tests:")
-    print(-v1)
-
-    print("\nBinary Tests:")
-    vector_part1 = VectorPart(1, 3, -5)
-    vector_part2 = VectorPart(4, -2, -1)
-
-    print(f"Addition: {v1 + v1}")
-    print(f"Subtraction: {v1 - v1}")
-    print(f"Product: {vector_part1 * vector_part2}")
-    print(f"Dot Product: {vector_part1 @ vector_part2}")
-
-    q1 = Quaternion(3, vector_part1)
-    print(q1)
-    print(q1.normalize())
-    print()
-    q2 = q1 * q1
-    print(q2)
-    print(q2.normalize())
+    print(f"Rotating ( {p}) about ( {q1}) by {math.degrees(angle)} degrees:\n\t> ( {result})")
